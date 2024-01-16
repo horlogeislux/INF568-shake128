@@ -1,14 +1,9 @@
-r run: shake128
-	./shake128
+zip: makefile shake128 README.txt
+	rm -f hector.zip
+	zip -q hector.zip makefile shake128.c README.txt
 
 shake128: shake128.c
 	gcc shake128.c -o shake128
-	rm -f hector.zip
-	zip hector.zip makefile shake128.c README.txt
-
-zip: shake128
-	rm -f hector.zip
-	zip hector.zip makefile shake128.c README.txt
 
 .PHONY: clean
 clean:
