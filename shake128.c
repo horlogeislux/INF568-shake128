@@ -61,7 +61,7 @@ static void rho(uint64_t a[5][5]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
             b[x][y] =
-                rotate_left(a[x][y], rhoOffset[y][x]);  // TODO check [y,x]
+                rotate_left(a[x][y], rhoOffset[y][x]);
         }
     }
 
@@ -134,7 +134,6 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    // Check arg for integer >= 0 (bytes to be output)
     char* endptr = NULL;
     long d = 8 * strtol(argv[1], &endptr, 10);
 
