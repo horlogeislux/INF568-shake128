@@ -1,7 +1,5 @@
 author:
 Hector Denis
-email:
-hector.denis@polytechnique.edu
 
 
 description:
