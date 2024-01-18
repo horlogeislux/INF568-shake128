@@ -58,15 +58,11 @@ static const unsigned int rhoOffset[5][5] = {
 };
 
 static void rho(uint64_t a[5][5]) {
-    uint64_t b[5][5] = {0};
-
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
-            b[x][y] = rotate_left(a[x][y], rhoOffset[y][x]);
+            a[x][y] = rotate_left(a[x][y], rhoOffset[y][x]);
         }
     }
-
-    memcpy(a, b, sizeof(**a) * 5 * 5);
 }
 
 static void pi(uint64_t a[5][5]) {
@@ -220,17 +216,17 @@ static int sponge(const size_t fsize, const size_t d) {
     DBG(puts("--- Switching to squeezing phase ---", );)
 
     uint8_t* Z = malloc(d);
-    for (size_t di = 0; di < d; di++) {
-        Z[di] = ((uint8_t*)S)[di % rd8];
+    for (size_t i = 0; i < d; i++) {
+        Z[i] = ((uint8_t*)S)[i % rd8];
 
-        if (0 == (di + 1) % rd8) {
+        if (0 == (i + 1) % rd8) {
             keccak_p(S);
         }
     }
 
     DBG(puts("\nhash:");)
-    for (size_t di = 0; di < d; di++) {
-        printf("%x", Z[di]);
+    for (size_t i = 0; i < d; i++) {
+        printf("%x", Z[i]);
     }
     putchar('\n');
 
