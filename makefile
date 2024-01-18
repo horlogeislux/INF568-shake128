@@ -6,7 +6,7 @@ shake128: shake128.c
 
 zip: makefile shake128 README.txt
 	rm -f hector.zip
-	zip -q hector.zip makefile shake128.c README.txt
+	zip -q hector.zip makefile shake128.c README.txt short-binary.bin short-text.txt
 
 .PHONY: clean
 clean:
