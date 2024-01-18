@@ -3,7 +3,7 @@ zip: makefile shake128 README.txt
 	zip -q hector.zip makefile shake128.c README.txt
 
 shake128: shake128.c
-	gcc -Wall -Wextra shake128.c -o shake128
+	gcc -g -Wall -Wno-unused -Wextra shake128.c -o shake128
 
 .PHONY: clean
 clean:
