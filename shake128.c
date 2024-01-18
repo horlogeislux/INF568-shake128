@@ -20,7 +20,7 @@ SHAKE128(M,d) = keccak[256](M || 1111, d)
 #include <stdlib.h>
 #include <string.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG > 0
 #define DBG(s) s
@@ -28,13 +28,7 @@ SHAKE128(M,d) = keccak[256](M || 1111, d)
 #define DBG(s)
 #endif
 
-#if 0
-static uint64_t rotate_right(uint64_t x, unsigned d) {
-    return (x >> d) | (x << (64 - d));
-}
-#endif
-
-static uint64_t rotate_left(uint64_t x, unsigned d) {
+static inline uint64_t rotate_left(const uint64_t x, const unsigned d) {
     return (x << d) | (x >> (64 - d));
 }
 
@@ -80,8 +74,7 @@ static void pi(uint64_t a[5][5]) {
 
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
-            int xp3ym5 = (x + 3 * y) % 5;
-            b[x][y] = a[xp3ym5][x];
+            b[x][y] = a[(x + 3 * y) % 5][x];
         }
     }
 
@@ -89,7 +82,7 @@ static void pi(uint64_t a[5][5]) {
 }
 
 static void chi(uint64_t a[5][5]) {
-    uint64_t tmp[5][5] = {0};
+    uint64_t b[5][5] = {0};
 
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
@@ -97,11 +90,11 @@ static void chi(uint64_t a[5][5]) {
             uint64_t v = ~a[(x + 1) % 5][y];
             uint64_t w = a[(x + 2) % 5][y];
 
-            tmp[x][y] = u ^ (v & w);
+            b[x][y] = u ^ (v & w);
         }
     }
 
-    memcpy(a, tmp, sizeof(**a) * 5 * 5);
+    memcpy(a, b, sizeof(**a) * 5 * 5);
 }
 
 static const uint64_t RC[] = {
@@ -115,27 +108,27 @@ static const uint64_t RC[] = {
     0x8000000000008080, 0x0000000080000001, 0x8000000080008008,
 };
 
-static void iota_k(uint64_t a[5][5], int k) { a[0][0] ^= RC[k]; }
+static void iota_k(uint64_t a[5][5], const int k) { a[0][0] ^= RC[k]; }
 
-// bin is an array of 25 = 1600/64 elements of 64 bits
-static void words_to_state(const uint64_t bin[25], uint64_t a[5][5]) {
+// a state is an array of 25 = 1600/64 elements of 64 bits
+static void words_to_state(const uint64_t state[25], uint64_t a[5][5]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
-            a[x][y] = bin[5 * y + x];
+            a[x][y] = state[5 * y + x];
         }
     }
 }
 
-// bin is an array of 25 = 1600/64 elements
-static void state_to_words(const uint64_t a[5][5], uint64_t bin[25]) {
+// a state is an array of 25 = 1600/64 elements of 64 bits
+static void state_to_words(const uint64_t a[5][5], uint64_t state[25]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
-            bin[5 * y + x] = a[x][y];
+            state[5 * y + x] = a[x][y];
         }
     }
 }
 
-static void disp(uint64_t a[5][5]) {
+static void disp_matrix(const uint64_t a[5][5]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
             // y are lines, x are columns
@@ -145,63 +138,57 @@ static void disp(uint64_t a[5][5]) {
     }
 }
 
-static void dispwords(uint64_t S[25]) {
-    uint8_t* t = (uint8_t*)S;
+static void disp_state(const uint64_t state[25]) {
+    uint8_t* p = (uint8_t*)state;
     for (int n = 0; n < 25 * 8; n++) {
-        printf("%02x ", t[n]);
+        printf("%02x ", p[n]);
         if ((n + 1) % 32 == 0) putchar('\n');
     }
     putchar('\n');
 }
 
 // modifies in place
-static void keccak_p(uint64_t bin[25]) {
-    DBG(puts("Input of permutation:"); dispwords(bin);)
+static void keccak_p(uint64_t state[25]) {
+    DBG(puts("Input of permutation:"); disp_state(state);)
 
     uint64_t a[5][5] = {0};
-    words_to_state(bin, a);
+    words_to_state(state, a);
 
-    // DBG(puts("Input of permutation:"); disp(a);)
+    // DBG(puts("Input of permutation:"); disp_matrix(a);)
 
-    for (int k = 0; k < 24; k++) {
+    for (unsigned k = 0; k < 24; k++) {
         // DBG(printf("\n--- Round %d ---\n\n", k);)
         theta(a);
-        // DBG(puts("After theta:"); disp(a);)
+        // DBG(puts("After theta:"); disp_matrix(a);)
 
         rho(a);
-        // DBG(puts("After rho:"); disp(a);)
+        // DBG(puts("After rho:"); disp_matrix(a);)
 
         pi(a);
-        // DBG(puts("After pi:"); disp(a);)
+        // DBG(puts("After pi:"); disp_matrix(a);)
 
         chi(a);
-        // DBG(puts("After chi:"); disp(a);)
+        // DBG(puts("After chi:"); disp_matrix(a);)
 
         iota_k(a, k);
-        // DBG(puts("After iota:"); disp(a);)
+        // DBG(puts("After iota:"); disp_matrix(a);)
     }
 
-    // DBG(puts("State after permutation:"); disp(a);)
-    state_to_words(a, bin);
+    // DBG(puts("State after permutation:"); disp_matrix(a);)
+    state_to_words(a, state);
 
-    DBG(puts("State after permutation:"); dispwords(bin);)
+    DBG(puts("State after permutation:"); disp_state(state);)
 }
 
-static int sponge(unsigned long fsize, unsigned long d) {
+static int sponge(const size_t fsize, const size_t d) {
     // assume the message is byte aligned: len_N = 8m
-
-    const unsigned b = 1600;     // internal data in bits
-    const unsigned bd8 = b / 8;  // internal data in octets
 
     const unsigned r = 1344;     // rate in bits
     const unsigned rd8 = r / 8;  // rate in octets
 
-    const unsigned c = b - r;    // capacity in bits
-    const unsigned cd8 = c / 8;  // capacity in octets
-
     // by definition, 0 <= % < rd8, so q > 0
-    const unsigned q = rd8 - ((fsize / 8) % rd8);
-    printf("q %d\n", q);
+    const size_t q = rd8 - (fsize % rd8);
+    DBG(printf("q %d\n", q);)
 
     uint8_t* bin = malloc(fsize + q);
     memset(bin, 0, fsize + q);
@@ -209,7 +196,7 @@ static int sponge(unsigned long fsize, unsigned long d) {
 
     if (fsize2 < 0 || (unsigned long)fsize2 != fsize) {
         free(bin);
-        fprintf(stderr, "bad read: %ld %ld\n", fsize, fsize2);
+        fprintf(stderr, "Error: bad read length %ld %ld\n", fsize, fsize2);
         return EXIT_FAILURE;
     }
 
@@ -222,35 +209,35 @@ static int sponge(unsigned long fsize, unsigned long d) {
     memcpy(bin64, bin, fsize + q);
 
     uint64_t S[25] = {0};
-    uint8_t* S8 = (uint8_t*)S;  // 200 octets
     // nblocks = len P in octets (divided by) rate in octets
     const unsigned nblocks = (fsize + q) / rd8;
 
-    for (unsigned ni = 0; ni < nblocks; ni++) {
-        for (unsigned j = 0; j < 21; j++) {
-            S[j] ^= bin64[j + ni * rd8];
+    DBG(printf("nblocks %d\n", nblocks);)
+
+    for (size_t ni = 0; ni < nblocks; ni++) {
+        for (size_t j = 0; j < 21; j++) {  // 1344/64=21
+            S[j] ^= bin64[j + ni * 21];
         }
-        // for (unsigned j = 20; j < 24; j++) S[j] ^= 0;
         keccak_p(S);
     }
 
-    printf("--- Switching to squeezing phase --- %ld\n", d);
+    DBG(printf("--- Switching to squeezing phase --- %ld\n", d);)
 
     uint8_t* Z = malloc(d);
-    for (unsigned long di = 0; di < d; di++) {
-        // squeeze / extract
-        Z[di] = S8[di % 200];
+    uint8_t* S8 = (uint8_t*)S;  // 200 octets = rd8 + cd8
+    for (size_t di = 0; di < d; di++) {
+        Z[di] = S8[di % rd8];
 
-        if (((di + 1) % 200 == 0)) {
+        if (((di + 1) % rd8 == 0)) {
             keccak_p(S);
         }
     }
 
-    puts("\nhash:");
-    for (unsigned long di = 0; di < d; di++) {
+    DBG(puts("\nhash:");)
+    for (size_t di = 0; di < d; di++) {
         printf("%x", Z[di]);
     }
-    puts("");
+    putchar('\n');
 
     free(Z);
     free(bin64);
@@ -273,14 +260,10 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    // freopen(NULL, "rb", stdin);  // TODO check
-
     fseek(stdin, 0, SEEK_END);
     long fsize = ftell(stdin);
     rewind(stdin);
-    printf("fsize %lu\n", fsize);
+    DBG(printf("fsize %lu\n", fsize);)
 
-    sponge((unsigned long)fsize, (unsigned long)d);
-
-    return EXIT_SUCCESS;
+    return sponge((size_t)fsize, (size_t)d);
 }
