@@ -2,3 +2,5 @@ hector.zip
 shake128
 *.txt
 *.bin
+gmon.out
+shake128.gcda
