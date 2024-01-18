@@ -3,3 +3,7 @@ shake128
 keccakf-1600-iv.txt
 my.txt
 st.txt
+hex.*
+short.txt
+*.txt
+*.bin
