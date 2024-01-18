@@ -108,7 +108,7 @@ static const uint64_t RC[] = {
     0x8000000000008080, 0x0000000080000001, 0x8000000080008008,
 };
 
-static void iota_k(uint64_t a[5][5], const int k) { a[0][0] ^= RC[k]; }
+static inline void iota_k(uint64_t a[5][5], const int k) { a[0][0] ^= RC[k]; }
 
 // a state is an array of 25 = 1600/64 elements of 64 bits
 static void words_to_state(const uint64_t state[25], uint64_t a[5][5]) {
@@ -142,7 +142,7 @@ static void disp_state(const uint64_t state[25]) {
     uint8_t* p = (uint8_t*)state;
     for (int n = 0; n < 25 * 8; n++) {
         printf("%02x ", p[n]);
-        if ((n + 1) % 32 == 0) putchar('\n');
+        if (0 == (n + 1) % 32) putchar('\n');
     }
     putchar('\n');
 }
@@ -181,10 +181,10 @@ static void keccak_p(uint64_t state[25]) {
 }
 
 static int sponge(const size_t fsize, const size_t d) {
-    // assume the message is byte aligned: len_N = 8m
+    // assume the message is byte aligned: fsize = len_N = 8m
 
-    const unsigned r = 1344;     // rate in bits
-    const unsigned rd8 = r / 8;  // rate in octets
+    const unsigned rd8 = 1344 / 8;    // rate in octets
+    const unsigned rd64 = 1344 / 64;  // rate in octo words, rate block length
 
     // by definition, 0 <= % < rd8, so q > 0
     const size_t q = rd8 - (fsize % rd8);
@@ -192,7 +192,7 @@ static int sponge(const size_t fsize, const size_t d) {
 
     uint8_t* bin = malloc(fsize + q);
     memset(bin, 0, fsize + q);
-    long fsize2 = fread(bin, 1, fsize, stdin);
+    const long fsize2 = fread(bin, 1, fsize, stdin);
 
     if (fsize2 < 0 || (unsigned long)fsize2 != fsize) {
         free(bin);
@@ -203,32 +203,25 @@ static int sponge(const size_t fsize, const size_t d) {
     bin[fsize] = 0b00011111;
     bin[fsize + q - 1] |= 0b10000000;
 
-    // message P: rd8 divides fsize + q
-    uint64_t* bin64 = malloc(fsize + q);
-    memset(bin64, 0, fsize + q);
-    memcpy(bin64, bin, fsize + q);
-
-    uint64_t S[25] = {0};
-    // nblocks = len P in octets (divided by) rate in octets
+    // nblocks = length of padded msg (divided by) rate in octets
     const unsigned nblocks = (fsize + q) / rd8;
-
     DBG(printf("nblocks %d\n", nblocks);)
 
+    uint64_t S[25] = {0};
     for (size_t ni = 0; ni < nblocks; ni++) {
-        for (size_t j = 0; j < 21; j++) {  // 1344/64=21
-            S[j] ^= bin64[j + ni * 21];
+        for (size_t j = 0; j < rd64; j++) {
+            S[j] ^= ((uint64_t*)bin)[j + ni * rd64];
         }
         keccak_p(S);
     }
 
-    DBG(printf("--- Switching to squeezing phase --- %ld\n", d);)
+    DBG(puts("--- Switching to squeezing phase ---", );)
 
     uint8_t* Z = malloc(d);
-    uint8_t* S8 = (uint8_t*)S;  // 200 octets = rd8 + cd8
     for (size_t di = 0; di < d; di++) {
-        Z[di] = S8[di % rd8];
+        Z[di] = ((uint8_t*)S)[di % rd8];
 
-        if (((di + 1) % rd8 == 0)) {
+        if (0 == (di + 1) % rd8) {
             keccak_p(S);
         }
     }
@@ -240,7 +233,6 @@ static int sponge(const size_t fsize, const size_t d) {
     putchar('\n');
 
     free(Z);
-    free(bin64);
     free(bin);
     return EXIT_SUCCESS;
 }
