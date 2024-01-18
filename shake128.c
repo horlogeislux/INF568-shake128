@@ -111,7 +111,7 @@ static const uint64_t RC[] = {
 static inline void iota_k(uint64_t a[5][5], const int k) { a[0][0] ^= RC[k]; }
 
 // a state is an array of 25 = 1600/64 elements of 64 bits
-static void words_to_state(const uint64_t state[25], uint64_t a[5][5]) {
+static inline void words_to_state(const uint64_t state[25], uint64_t a[5][5]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
             a[x][y] = state[5 * y + x];
@@ -120,7 +120,7 @@ static void words_to_state(const uint64_t state[25], uint64_t a[5][5]) {
 }
 
 // a state is an array of 25 = 1600/64 elements of 64 bits
-static void state_to_words(const uint64_t a[5][5], uint64_t state[25]) {
+static inline void state_to_words(const uint64_t a[5][5], uint64_t state[25]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
             state[5 * y + x] = a[x][y];
@@ -128,6 +128,7 @@ static void state_to_words(const uint64_t a[5][5], uint64_t state[25]) {
     }
 }
 
+#if DEBUG > 0  // avoid -Wunused-function
 static void disp_matrix(const uint64_t a[5][5]) {
     for (int x = 0; x < 5; x++) {
         for (int y = 0; y < 5; y++) {
@@ -146,6 +147,7 @@ static void disp_state(const uint64_t state[25]) {
     }
     putchar('\n');
 }
+#endif
 
 // modifies in place
 static void keccak_p(uint64_t state[25]) {
