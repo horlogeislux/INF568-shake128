@@ -226,7 +226,7 @@ static int sponge(const size_t fsize, const size_t d) {
 
     DBG(puts("\nhash:");)
     for (size_t i = 0; i < d; i++) {
-        printf("%x", Z[i]);
+        printf("%02x", Z[i]);
     }
     putchar('\n');
 
